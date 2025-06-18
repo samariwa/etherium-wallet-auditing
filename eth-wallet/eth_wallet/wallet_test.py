@@ -24,6 +24,31 @@ def get_wallet_balance(token=None):
 def send_eth_transaction():
     return run_eth_wallet_command("send-transaction")
 
+def send_transaction(to_address, value, passphrase=None):
+    """Send ETH to a specified address with a given value (in ETH), optionally with passphrase for non-interactive use."""
+    if passphrase:
+        # If CLI supports --password, use it; otherwise, simulate input
+        cmd = f"send-transaction --to {to_address} --value {value}"
+        process = subprocess.Popen(
+            shlex.split(f"eth-wallet {cmd}"),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        try:
+            # Send passphrase to stdin when prompted
+            stdout, stderr = process.communicate(input=passphrase + "\n", timeout=30)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            stdout, stderr = process.communicate()
+        if process.returncode == 0:
+            return stdout
+        else:
+            return stderr or stdout or "Error sending transaction."
+    else:
+        return run_eth_wallet_command(f"send-transaction --to {to_address} --value {value}")
+
 # Add new ERC20 token (interactive)
 def add_token():
     return run_eth_wallet_command("add-token")

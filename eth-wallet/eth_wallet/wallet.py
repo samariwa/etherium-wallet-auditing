@@ -17,6 +17,7 @@ from eth_wallet.exceptions import (
 from mnemonic import (
     Mnemonic
 )
+from web3 import Web3
 
 
 class Wallet:
@@ -54,7 +55,7 @@ class Wallet:
         # update config address
         self.conf.update_eth_address(self.account.address)
         # update config public key
-        priv_key = keys.PrivateKey(self.account.privateKey)
+        priv_key = keys.PrivateKey(self.account.key)
         pub_key = priv_key.public_key
         self.conf.update_public_key(pub_key.to_hex())
 
@@ -84,7 +85,7 @@ class Wallet:
         :param private_key: in format hex str/bytes/int/eth_keys.datatypes.PrivateKey
         :return: currently created account
         """
-        self.account = Account.privateKeyToAccount(private_key)
+        self.account = Account.from_key(private_key)
         return self.account
 
     def save_keystore(self, password):
@@ -95,7 +96,7 @@ class Wallet:
         """
         create_directory(self.conf.keystore_location)
         keystore_path = self.conf.keystore_location + self.conf.keystore_filename
-        encrypted_private_key = Account.encrypt(self.account.privateKey, password)
+        encrypted_private_key = Account.encrypt(self.account.key, password)
         with open(keystore_path, 'w+') as outfile:
             json.dump(encrypted_private_key, outfile, ensure_ascii=False)
         return keystore_path
@@ -130,7 +131,7 @@ class Wallet:
         Returns wallet private key
         :return: private key
         """
-        return self.account.privateKey  # to print private key in hex use account.privateKey.hex() function
+        return self.account.key  # to print private key in hex use account.key.hex() function
 
     def get_public_key(self):
         """
@@ -152,6 +153,6 @@ class Wallet:
         :return: number of ether on users account
         """
         self.w3 = Infura().get_web3()
-        eth_balance = self.w3.fromWei(self.w3.eth.getBalance(address), 'ether')
+        eth_balance = Web3.from_wei(self.w3.eth.get_balance(address), 'ether')
         return eth_balance
 

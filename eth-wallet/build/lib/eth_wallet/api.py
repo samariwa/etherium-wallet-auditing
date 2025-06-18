@@ -62,7 +62,7 @@ class WalletAPI:
         :param configuration: loaded configuration file instance
         :return: network number defined in EIP155
         """
-        return configuration.network
+        return 11155111
 
     @staticmethod
     def get_private_key(configuration, keystore_password):
@@ -143,12 +143,12 @@ class WalletAPI:
         if token_symbol is None:  # create ETH transaction dictionary
             tx_dict = transaction.build_transaction(
                 to_address=to_address,
-                value=Web3.toWei(value, "ether"),
+                value=Web3.to_wei(value, "ether"),
                 gas=21000,  # fixed gasLimit to transfer ether from one EOA to another EOA (doesn't include contracts)
-                gas_price=w3.eth.gasPrice * gas_price_speed,
+                gas_price=w3.eth.gas_price * gas_price_speed,
                 # be careful about sending more transactions in row, nonce will be duplicated
-                nonce=w3.eth.getTransactionCount(wallet.get_address()),
-                chain_id=configuration.network
+                nonce=w3.eth.get_transaction_count(wallet.get_address()),
+                chain_id=11155111
             )
         else:  # create ERC20 contract transaction dictionary
             try:  # check if token is added to the wallet
@@ -176,21 +176,21 @@ class WalletAPI:
                 to_address=contract_address,  # receiver address is defined in data field for this contract
                 value=0,  # amount of tokens to send is defined in data field for contract
                 gas=estimated_gas,
-                gas_price=w3.eth.gasPrice * gas_price_speed,
+                gas_price=w3.eth.gas_price * gas_price_speed,
                 # be careful about sending more transactions in row, nonce will be duplicated
-                nonce=w3.eth.getTransactionCount(wallet.get_address()),
-                chain_id=configuration.network,
+                nonce=w3.eth.get_transaction_count(wallet.get_address()),
+                chain_id=11155111,
                 data=data_for_contract
             )
 
         # check whether to address is valid checksum address
-        if not Web3.isChecksumAddress(to_address):
+        if not Web3.is_checksum_address(to_address):
             raise InvalidAddress()
 
         # check whether there is sufficient eth balance for this transaction
         balance, _ = WalletAPI.get_balance(configuration)
         transaction_const_wei = tx_dict['gas'] * tx_dict['gasPrice']
-        transaction_const_eth = w3.fromWei(transaction_const_wei, 'ether')
+        transaction_const_eth = Web3.from_wei(transaction_const_wei, 'ether')
         if token_symbol is None:
             if (transaction_const_eth + Decimal(value)) > balance:
                 raise InsufficientFundsException()
@@ -203,7 +203,7 @@ class WalletAPI:
 
         print('Pending', end='', flush=True)
         while True:
-            tx_receipt = w3.eth.getTransactionReceipt(tx_hash)
+            tx_receipt = w3.eth.get_transaction_receipt(tx_hash)
             if tx_receipt is None:
                 print('.', end='', flush=True)
                 time.sleep(1)

@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from wallet_test import get_wallet_info, get_wallet_balance, list_tokens, get_network
+from wallet_test import get_wallet_info, get_wallet_balance, list_tokens, get_network, send_transaction
 from participant_verification import extract_features_from_etherscan, predict_scam, fetch_wallet_transactions
+from langchain_agent import run_scam_agent
 
 app = Flask(__name__)
 CORS(app)
@@ -34,13 +35,24 @@ def predict():
     if not address:
         return jsonify({"error": "Missing address"}), 400
     try:
-        txs = fetch_wallet_transactions(address)
-        features = extract_features_from_etherscan(txs, address)
-        verdict, top_features = predict_scam(features)
-        explain = [
-            {"feature": f, "contribution": float(c)} for f, c in top_features
-        ]
-        return jsonify({"verdict": verdict, "explain": explain})
+        agent_output = run_scam_agent(address)
+        return jsonify({"result": agent_output})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/send", methods=["POST"])
+def api_send():
+    data = request.get_json()
+    to_address = data.get("to_address")
+    amount = data.get("amount")
+    passphrase = data.get("passphrase")
+    if not to_address or not amount or not passphrase:
+        return jsonify({"error": "Missing to_address, amount, or passphrase"}), 400
+    try:
+        result = send_transaction(to_address, amount, passphrase)
+        if "Error" in result or "error" in result.lower():
+            return jsonify({"error": result}), 400
+        return jsonify({"result": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

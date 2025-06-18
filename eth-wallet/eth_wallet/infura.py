@@ -18,7 +18,7 @@ class Infura:
         # Now uses environment variable if set
 
     def get_web3(self):
-        if not self.w3.isConnected():
+        if not self.w3.is_connected():
             raise InfuraErrorException()
 
         return self.w3

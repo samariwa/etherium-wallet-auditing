@@ -1,5 +1,225 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "./App.css";
+
+function Modal({
+  open,
+  verdict,
+  onClose,
+  onConfirm,
+  sending,
+  sendResult,
+  error,
+  passphrase,
+  setPassphrase,
+  details,
+}) {
+  const [showDetails, setShowDetails] = useState(false);
+  // Detect high risk verdict
+  const isHighRisk =
+    verdict &&
+    verdict.trim().toLowerCase().startsWith("suspethious: transacting with") &&
+    verdict.toLowerCase().includes("high risk");
+  // Extract summary and details
+  let summary = verdict;
+  let detailsText = details || "";
+  if (isHighRisk && verdict.includes("\n")) {
+    const firstLine = verdict.split("\n")[0];
+    summary = "SuspETHious: High Risk Transaction";
+    detailsText = verdict;
+  }
+  return !open ? null : (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        background: "rgba(10,35,66,0.18)",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 16,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
+          padding: "2.2rem 2.5rem",
+          minWidth: 420,
+          maxWidth: 480,
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 600,
+            fontSize: 18,
+            color: summary.startsWith("SuspETHious: High Risk")
+              ? "#e74c3c"
+              : summary.startsWith("SuspETHious: Recipient Verified")
+              ? "#27ae60"
+              : "#222",
+            fontFamily: "Menlo, Monaco, 'Fira Mono', monospace",
+            marginBottom: 18,
+            minHeight: 60,
+            width: "100%",
+            whiteSpace: "pre-line",
+            textAlign: "center",
+          }}
+        >
+          {summary}
+        </div>
+        {isHighRisk && (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              onClick={() => setShowDetails((v) => !v)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#2980b9",
+                fontWeight: 600,
+                cursor: "pointer",
+                fontSize: 15,
+                textDecoration: "underline",
+              }}
+            >
+              {showDetails ? "Hide Details" : "View More Details"}
+            </button>
+          </div>
+        )}
+        {isHighRisk && showDetails && (
+          <div
+            style={{
+              width: "100%",
+              marginBottom: 18,
+              minHeight: 60,
+              textAlign: "left",
+            }}
+          >
+            <Typewriter text={detailsText} />
+          </div>
+        )}
+        <div
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            fontWeight: 500,
+            color: "#222",
+          }}
+        >
+          Please enter Wallet Passphrase to Complete Transaction
+        </div>
+        <input
+          type="password"
+          value={passphrase}
+          onChange={(e) => setPassphrase(e.target.value)}
+          placeholder="Wallet passphrase"
+          style={{
+            width: "100%",
+            padding: "0.7rem 1rem",
+            borderRadius: 8,
+            border: "1px solid #ccc",
+            fontSize: 16,
+            marginBottom: 18,
+            fontFamily: "Inter, Segoe UI, Arial, sans-serif",
+            background: "#f8fafd",
+            color: "#222",
+          }}
+        />
+        {error && (
+          <div style={{ color: "#e74c3c", fontWeight: 600, marginBottom: 10 }}>
+            {error}
+          </div>
+        )}
+        {sendResult && (
+          <div
+            style={{
+              color: "#27ae60",
+              fontWeight: 600,
+              marginBottom: 10,
+              whiteSpace: "pre-line",
+            }}
+          >
+            {sendResult}
+          </div>
+        )}
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              background: "#f4f7fa",
+              color: "#222",
+              border: "none",
+              borderRadius: 8,
+              padding: "0.8rem 0",
+              fontWeight: 600,
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={sending || !passphrase}
+            style={{
+              flex: 1,
+              background: sending ? "#aaa" : "#27ae60",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "0.8rem 0",
+              fontWeight: 600,
+              fontSize: 16,
+              cursor: sending ? "not-allowed" : "pointer",
+            }}
+          >
+            {" "}
+            {sending ? "Sending..." : "Confirm"}{" "}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Typewriter({ text }) {
+  const [typed, setTyped] = useState("");
+  const typingTimeout = useRef(null);
+  useEffect(() => {
+    setTyped("");
+    let i = 0;
+    function typeNext() {
+      setTyped(text.slice(0, i));
+      if (i < text.length) {
+        i++;
+        typingTimeout.current = setTimeout(typeNext, 18);
+      }
+    }
+    typeNext();
+    return () => clearTimeout(typingTimeout.current);
+  }, [text]);
+  return (
+    <span>
+      {typed}
+      {typed.length < text.length && <span style={{ color: "#aaa" }}>|</span>}
+    </span>
+  );
+}
 
 export default function App() {
   const [address, setAddress] = useState("");
@@ -13,7 +233,14 @@ export default function App() {
   const [amount, setAmount] = useState("");
   const [verdict, setVerdict] = useState("");
   const [verifying, setVerifying] = useState(false);
-  const [explain, setExplain] = useState([]);
+  const [typedVerdict, setTypedVerdict] = useState("");
+  const [passphrase, setPassphrase] = useState("");
+  const [sending, setSending] = useState("");
+  const [sendResult, setSendResult] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalVerdict, setModalVerdict] = useState("");
+  const [modalDetails, setModalDetails] = useState("");
+  const typingTimeout = useRef(null);
 
   // Helper to mask the public key
   function getMaskedPubKey(pubKey) {
@@ -22,6 +249,25 @@ export default function App() {
     if (pubKey.length <= 8) return pubKey;
     return pubKey.slice(0, 4) + "••••••••" + pubKey.slice(-4);
   }
+
+  // Typing animation effect for verdict
+  useEffect(() => {
+    if (!verdict) {
+      setTypedVerdict("");
+      return;
+    }
+    setTypedVerdict("");
+    let i = 0;
+    function typeNext() {
+      setTypedVerdict((prev) => verdict.slice(0, i));
+      if (i < verdict.length) {
+        i++;
+        typingTimeout.current = setTimeout(typeNext, 18); // typing speed (ms)
+      }
+    }
+    typeNext();
+    return () => clearTimeout(typingTimeout.current);
+  }, [verdict]);
 
   useEffect(() => {
     async function fetchWallet() {
@@ -56,12 +302,16 @@ export default function App() {
     fetchWallet();
   }, []);
 
-  async function handleSend(e) {
+  async function handleVerifyAndOpenModal(e) {
     e.preventDefault();
+    setVerifying(true);
     setVerdict("");
     setError("");
-    setExplain([]);
-    setVerifying(true);
+    setSendResult("");
+    setModalVerdict("");
+    setModalDetails("");
+    setSending(false);
+    setPassphrase("");
     try {
       const res = await fetch("http://127.0.0.1:5001/api/predict", {
         method: "POST",
@@ -69,9 +319,17 @@ export default function App() {
         body: JSON.stringify({ address: toAddress }),
       });
       const data = await res.json();
-      if (data.verdict) {
-        setVerdict(data.verdict);
-        setExplain(data.explain || []);
+      if (data.result) {
+        // If high risk, pass details for typewriter
+        const isHighRisk =
+          data.result
+            .trim()
+            .toLowerCase()
+            .startsWith("suspethious: transacting with") &&
+          data.result.toLowerCase().includes("high risk");
+        setModalVerdict(data.result);
+        setModalDetails(isHighRisk ? data.result : "");
+        setModalOpen(true);
       } else if (data.error) {
         setError(data.error);
       } else {
@@ -81,6 +339,34 @@ export default function App() {
       setError("Failed to verify address.");
     }
     setVerifying(false);
+  }
+
+  async function handleSendTransaction() {
+    setSendResult("");
+    setError("");
+    setSending(true);
+    try {
+      const res = await fetch("http://127.0.0.1:5001/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to_address: toAddress,
+          amount: amount,
+          passphrase: passphrase,
+        }),
+      });
+      const data = await res.json();
+      if (data.result) {
+        setSendResult(data.result);
+      } else if (data.error) {
+        setError(data.error);
+      } else {
+        setError("Unknown error during send.");
+      }
+    } catch (err) {
+      setError("Failed to send transaction.");
+    }
+    setSending(false);
   }
 
   return (
@@ -354,52 +640,68 @@ export default function App() {
           />
           <button
             style={{
-              background: "#0a2342",
+              background: verifying ? "#aaa" : "#0a2342",
               color: "#fff",
               border: "none",
               borderRadius: 8,
               padding: "0.8rem 2.2rem",
               fontSize: 18,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: verifying ? "not-allowed" : "pointer",
               fontFamily: "Inter, Segoe UI, Arial, sans-serif",
               transition: "background 0.2s",
               marginTop: 8,
               boxShadow: "0 2px 8px rgba(10,35,66,0.08)",
             }}
-            onClick={handleSend}
-            disabled={verifying || !toAddress}
+            onClick={handleVerifyAndOpenModal}
+            disabled={verifying || !toAddress || !amount}
           >
             {verifying ? "Verifying..." : "Send"}
           </button>
-          {verdict && (
+          {sendResult && (
+            <div
+              style={{
+                marginTop: 18,
+                color: "#27ae60",
+                fontWeight: 600,
+                whiteSpace: "pre-line",
+                background: "#f4f7fa",
+                borderRadius: 10,
+                padding: "1.1rem 1.3rem",
+                fontSize: 16,
+                fontFamily: "Menlo, Monaco, 'Fira Mono', monospace",
+                boxShadow: "0 2px 8px rgba(10,35,66,0.04)",
+                minHeight: 60,
+                transition: "background 0.2s",
+              }}
+            >
+              {sendResult}
+            </div>
+          )}
+          {typedVerdict && (
             <div
               style={{
                 marginTop: 18,
                 fontWeight: 600,
-                color: verdict === "flagged" ? "#e74c3c" : "#27ae60",
+                color: typedVerdict.startsWith("SuspETHious: Transacting with")
+                  ? "#e74c3c"
+                  : typedVerdict.trim() === "SuspETHious: Recipient Verified"
+                  ? "#27ae60"
+                  : "#222",
+                whiteSpace: "pre-line",
+                background: "#f4f7fa",
+                borderRadius: 10,
+                padding: "1.1rem 1.3rem",
+                fontSize: 16,
+                fontFamily: "Menlo, Monaco, 'Fira Mono', monospace",
+                boxShadow: "0 2px 8px rgba(10,35,66,0.04)",
+                minHeight: 60,
+                transition: "background 0.2s",
               }}
             >
-              Scam Check:{" "}
-              {verdict === "flagged" ? "Flagged as Scam" : "Not Flagged"}
-              {explain.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    fontWeight: 400,
-                    color: "#222",
-                    fontSize: 15,
-                  }}
-                >
-                  Top contributing features:
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {explain.map((item, i) => (
-                      <li key={i}>
-                        <b>{item.feature}</b>: {item.contribution.toFixed(3)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              {typedVerdict}
+              {typedVerdict.length < verdict.length && (
+                <span style={{ color: "#aaa" }}>|</span>
               )}
             </div>
           )}
@@ -416,6 +718,23 @@ export default function App() {
           )}
         </div>
       </div>
+      <Modal
+        open={modalOpen}
+        verdict={modalVerdict}
+        details={modalDetails}
+        onClose={() => {
+          setModalOpen(false);
+          setPassphrase("");
+          setSendResult("");
+          setError("");
+        }}
+        onConfirm={handleSendTransaction}
+        sending={sending}
+        sendResult={sendResult}
+        error={error}
+        passphrase={passphrase}
+        setPassphrase={setPassphrase}
+      />
     </div>
   );
 }

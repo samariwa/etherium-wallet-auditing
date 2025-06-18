@@ -60,8 +60,8 @@ class Transaction:
         """
         print('transaction: ' + str(transaction))
 
-        signed_tx = Account.signTransaction(transaction, self.account.privateKey)
-        tx_hash = self.w3.eth.sendRawTransaction(signed_tx.rawTransaction)
+        signed_tx = Account.sign_transaction(transaction, self.account.key)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
         return tx_hash
 

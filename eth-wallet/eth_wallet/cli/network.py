@@ -15,5 +15,5 @@ def network():
     chain_id = api.get_network(configuration)
     if chain_id == 1:
         click.echo('You are connected to the Mainnet network!')
-    if chain_id == 3:
-        click.echo('You are connected to the Ropsten network!')
+    if chain_id == 11155111:
+        click.echo('You are connected to the Sepolia network!')

@@ -16,12 +16,15 @@ def get_wallet_balance(token=None):
         return f"Balance on address {address} is: {balance}{token}"
     return f"Balance on address {address} is: {balance}ETH"
 
-def send_eth_transaction():
+def send_transaction(to_address, amount, passphrase):
+    """Send ETH to a specified address with a given value (in ETH) and passphrase."""
     configuration = Configuration().load_configuration()
     api = WalletAPI()
-    # Implement transaction sending logic here, using api.send_transaction
-    # Handle user input for passwords and transaction details as required
-    pass
+    try:
+        tx_hash, tx_cost_eth = api.send_transaction(configuration, passphrase, to_address, amount)
+        return f"Transaction sent!\nHash: {tx_hash.hex()}\nFee: {tx_cost_eth} ETH"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 def add_token():
     configuration = Configuration().load_configuration()

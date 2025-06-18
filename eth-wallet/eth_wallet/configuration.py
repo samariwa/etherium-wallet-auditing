@@ -12,7 +12,7 @@ class Configuration:
     """
     # Networks defined in https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#specification
     MAIN_NETWORK_ID = 1
-    ROPSTEN_NETWORK_ID = 3
+    SEPOLIA_NETWORK_ID = 11155111
 
     # By default user’s home location ./eth-wallet directory is where to save config file
     config_dir = os.path.expanduser('~') + '/.eth-wallet'
@@ -23,7 +23,7 @@ class Configuration:
         keystore_filename='/keystore',
         eth_address='',
         public_key='',
-        network=ROPSTEN_NETWORK_ID,  # default network where to connect app
+        network=11155111,  # default network where to connect app (Sepolia)
         contracts=dict(),
     )
 
